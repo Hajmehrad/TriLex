@@ -131,6 +131,7 @@
     font-style:italic;
     font-size:14.5px;
     letter-spacing:.01em;
+    direction:ltr; unicode-bidi:isolate;
   }
   .tab-btn .cnt{
     font-family:'Inter',sans-serif;
@@ -173,6 +174,9 @@
     font-weight:600;
     font-size:20px;
     margin:0;
+  }
+  .lektion-title h2 .lekt-name{
+    direction:ltr; unicode-bidi:isolate;
   }
   .lektion-title .count{
     font-size:12px; color:var(--ink-soft);
@@ -236,6 +240,7 @@
     padding:2px 8px;
     border-radius:999px;
     font-weight:600;
+    direction:ltr; unicode-bidi:isolate;
   }
   .card .def{
     margin-top:8px;
@@ -377,6 +382,7 @@
     display:inline-block; margin-top:8px; font-size:11px;
     background:rgba(63,107,79,.12); color:var(--green-tag);
     padding:3px 10px; border-radius:999px; font-weight:600;
+    direction:ltr; unicode-bidi:isolate;
   }
   .modal-close{
     flex:0 0 auto; width:32px; height:32px; border-radius:50%;
@@ -410,6 +416,7 @@
     display:flex; align-items:baseline; gap:8px; font-size:13px; padding:4px 0;
     border-top:1px dashed var(--line);
   }
+  .ex-line.ex-line-ltr{ direction:ltr; }
   .ex-line:first-of-type{ border-top:1px dashed var(--line); }
   .ex-tag{
     flex:0 0 auto; font-weight:700; font-size:10px; color:var(--brass-deep);
@@ -620,7 +627,7 @@ function openModal(item){
     bodyHtml += `<div class="modal-section-label">مثال</div>`;
     bodyHtml += `<div class="example-box">`;
     bodyHtml += `<div class="ex-de">${item.example.de}</div>`;
-    if(item.example.en) bodyHtml += `<div class="ex-line"><span class="ex-tag">EN</span><span class="ex-en">${item.example.en}</span></div>`;
+    if(item.example.en) bodyHtml += `<div class="ex-line ex-line-ltr"><span class="ex-tag">EN</span><span class="ex-en">${item.example.en}</span></div>`;
     if(item.example.fa) bodyHtml += `<div class="ex-line"><span class="ex-tag">FA</span><span class="ex-fa">${item.example.fa}</span></div>`;
     bodyHtml += `</div>`;
   }
@@ -634,7 +641,7 @@ function openModal(item){
       bodyHtml += `<div class="conj-example">`;
       bodyHtml += `<div class="conj-head"><span class="conj-pron">${pron}</span><span class="conj-form">${data.form}</span></div>`;
       if(data.de) bodyHtml += `<div class="ex-de" style="margin-bottom:8px;">${data.de}</div>`;
-      if(data.en) bodyHtml += `<div class="ex-line"><span class="ex-tag">EN</span><span class="ex-en">${data.en}</span></div>`;
+      if(data.en) bodyHtml += `<div class="ex-line ex-line-ltr"><span class="ex-tag">EN</span><span class="ex-en">${data.en}</span></div>`;
       if(data.fa) bodyHtml += `<div class="ex-line"><span class="ex-tag">FA</span><span class="ex-fa">${data.fa}</span></div>`;
       bodyHtml += `</div>`;
     });
@@ -659,7 +666,7 @@ document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
 
 function render(){
   buildTabs();
-  document.getElementById('lektionTitle').innerHTML = `درس ${FA_NUMS[currentLektion]} <span style="color:var(--brass-deep);font-style:italic;font-weight:500;">— ${LEKTION_NAMES[currentLektion]}</span>`;
+  document.getElementById('lektionTitle').innerHTML = `درس ${FA_NUMS[currentLektion]} <span style="color:var(--brass-deep);font-style:italic;font-weight:500;">— <span class="lekt-name">${LEKTION_NAMES[currentLektion]}</span></span>`;
   const allItems = searchTerm ? Object.entries(DATA).flatMap(([l,items])=>items.map(it=>({...it,_lekt:l}))) : (DATA[currentLektion]||[]);
   const filtered = allItems.filter(it => matchesSearch(it, searchTerm));
 
