@@ -65,10 +65,18 @@
 
   .search-box{
     margin:22px 0 18px;
+    display:flex;
+    align-items:stretch;
+    gap:10px;
+  }
+  .search-box .search-input-wrap{
     position:relative;
+    flex:1;
+    min-width:0;
   }
   .search-box input{
     width:100%;
+    height:100%;
     padding:14px 46px 14px 16px;
     border-radius:12px;
     border:1.5px solid var(--line);
@@ -78,6 +86,7 @@
     color:var(--ink);
     outline:none;
     transition:border-color .15s, box-shadow .15s;
+    box-sizing:border-box;
   }
   .search-box input:focus{
     border-color:var(--brass);
@@ -86,6 +95,30 @@
   .search-box .icon{
     position:absolute; top:50%; right:16px; transform:translateY(-50%);
     color:var(--ink-soft); font-size:16px; pointer-events:none;
+  }
+  .pos-filter{
+    flex:0 0 auto;
+    width:112px;
+    padding:0 10px;
+    border-radius:12px;
+    border:1.5px solid var(--line);
+    background:var(--card);
+    font-family:'Vazirmatn',sans-serif;
+    font-size:13px;
+    color:var(--ink);
+    outline:none;
+    cursor:pointer;
+    direction:rtl;
+    transition:border-color .15s, box-shadow .15s;
+  }
+  .pos-filter:focus{
+    border-color:var(--brass);
+    box-shadow:0 0 0 3px rgba(180,128,46,.15);
+  }
+  .pos-filter.active{
+    border-color:var(--brass-deep);
+    color:var(--brass-deep);
+    font-weight:600;
   }
 
   .tabs{
@@ -458,6 +491,7 @@
     header.top .sub{ font-size: 16px; }
     .search-box input{ padding: 17px 54px 17px 20px; font-size: 16.5px; border-radius: 14px; }
     .search-box .icon{ font-size: 19px; right: 20px; }
+    .pos-filter{ width: 150px; font-size: 14.5px; border-radius: 14px; }
     .tabs{ gap: 12px; padding: 8px 2px 20px; }
     .tab-btn{ padding: 9px 20px 9px 9px; }
     .tab-btn .badge{ width: 30px; height: 30px; font-size: 14px; }
@@ -501,8 +535,13 @@
   </header>
 
   <div class="search-box">
-    <input id="searchInput" type="text" placeholder="جست‌وجوی کلمه (آلمانی، انگلیسی یا فارسی)...">
-    <span class="icon">&#128269;</span>
+    <div class="search-input-wrap">
+      <input id="searchInput" type="text" placeholder="جست‌وجوی کلمه (آلمانی، انگلیسی یا فارسی)...">
+      <span class="icon">&#128269;</span>
+    </div>
+    <select id="posFilter" class="pos-filter">
+      <option value="">همهٔ انواع</option>
+    </select>
   </div>
 
   <div class="tabs" id="tabs"></div>
@@ -548,6 +587,7 @@ const FA_NUMS = {1:"۱",2:"۲",3:"۳",4:"۴",5:"۵",6:"۶",7:"۷",8:"۸",9:"۹",
 
 let currentLektion = "1";
 let searchTerm = "";
+let posFilter = "";
 let historyOpen = false;
 
 function buildTabs(){
@@ -570,7 +610,51 @@ function normalize(s){
     .replace(/ä/g,'a').replace(/ö/g,'o').replace(/ü/g,'u').replace(/ß/g,'ss');
 }
 
-function matchesSearch(item, term){
+function getPosCategory(pos){
+  if(!pos) return '';
+  return pos.split('(')[0].trim();
+}
+
+const POS_LABELS = {
+  'Nomen':'اسم (Nomen)',
+  'Verb':'فعل (Verb)',
+  'Modalverb':'فعل کمکی (Modalverb)',
+  'Adjektiv':'صفت (Adjektiv)',
+  'Adjektiv/Pronomen':'صفت/ضمیر',
+  'Adverb':'قید (Adverb)',
+  'Pronomen':'ضمیر (Pronomen)',
+  'Präposition':'حرف‌اضافه (Präp.)',
+  'Konjunktion':'حرف‌ربط (Konj.)',
+  'Artikel':'حرف‌تعریف (Artikel)',
+  'Possessivartikel':'ملکی (Possessiv.)',
+  'Negativartikel':'منفی‌ساز',
+  'Zahlwort':'عدد (Zahlwort)',
+  'Fragewort':'پرسشی (Fragewort)',
+  'Interjektion':'صوت (Interj.)',
+  'Redewendung':'اصطلاح (Redew.)',
+  'Partikel':'حرف (Partikel)',
+  'Verweiswort':'ارجاعی (Verweis.)'
+};
+
+function buildPosFilterOptions(){
+  const counts = {};
+  Object.values(DATA).flat().forEach(it=>{
+    const cat = getPosCategory(it.pos);
+    if(!cat) return;
+    counts[cat] = (counts[cat]||0) + 1;
+  });
+  const cats = Object.keys(counts).sort((a,b)=> counts[b]-counts[a]);
+  const sel = document.getElementById('posFilter');
+  cats.forEach(cat=>{
+    const opt = document.createElement('option');
+    opt.value = cat;
+    opt.textContent = `${POS_LABELS[cat] || cat} (${counts[cat]})`;
+    sel.appendChild(opt);
+  });
+}
+
+function matchesFilters(item, term, pos){
+  if(pos && getPosCategory(item.pos) !== pos) return false;
   if(!term) return true;
   const t = normalize(term);
   const fields = [item.de, item.en, item.fa, item.def, item.pos].filter(Boolean).join(' ');
@@ -667,18 +751,19 @@ document.getElementById('modalCloseBtn').addEventListener('click', closeModal);
 function render(){
   buildTabs();
   document.getElementById('lektionTitle').innerHTML = `درس ${FA_NUMS[currentLektion]} <span style="color:var(--brass-deep);font-style:italic;font-weight:500;">— <span class="lekt-name">${LEKTION_NAMES[currentLektion]}</span></span>`;
-  const allItems = searchTerm ? Object.entries(DATA).flatMap(([l,items])=>items.map(it=>({...it,_lekt:l}))) : (DATA[currentLektion]||[]);
-  const filtered = allItems.filter(it => matchesSearch(it, searchTerm));
+  const isFiltering = !!(searchTerm || posFilter);
+  const allItems = isFiltering ? Object.entries(DATA).flatMap(([l,items])=>items.map(it=>({...it,_lekt:l}))) : (DATA[currentLektion]||[]);
+  const filtered = allItems.filter(it => matchesFilters(it, searchTerm, posFilter));
 
-  document.getElementById('progressNote').style.display = (!searchTerm && !TRANSLATED_LEKTIONS.includes(currentLektion)) ? 'block' : 'none';
-  document.getElementById('lektionCount').textContent = searchTerm ? `${filtered.length} نتیجه در همهٔ درس‌ها` : `${filtered.length} کلمه`;
+  document.getElementById('progressNote').style.display = (!isFiltering && !TRANSLATED_LEKTIONS.includes(currentLektion)) ? 'block' : 'none';
+  document.getElementById('lektionCount').textContent = isFiltering ? `${filtered.length} نتیجه در همهٔ درس‌ها` : `${filtered.length} کلمه`;
 
   const grid = document.getElementById('grid');
   grid.innerHTML = '';
   document.getElementById('emptyMsg').style.display = filtered.length ? 'none':'block';
   filtered.slice(0, 400).forEach(it=>{
     const card = renderCard(it);
-    if(searchTerm){
+    if(isFiltering){
       const badge = document.createElement('div');
       badge.style.cssText = 'font-size:10px;color:#9C7A2E;margin-bottom:4px;font-family:Vazirmatn;';
       badge.textContent = `درس ${FA_NUMS[it._lekt]}`;
@@ -769,6 +854,13 @@ document.getElementById('historyToggle').addEventListener('click', ()=>{
   document.getElementById('historyPanel').classList.toggle('open', historyOpen);
 });
 
+document.getElementById('posFilter').addEventListener('change', (e)=>{
+  posFilter = e.target.value;
+  e.target.classList.toggle('active', !!posFilter);
+  render();
+});
+
+buildPosFilterOptions();
 loadHistory();
 render();
 </script>
