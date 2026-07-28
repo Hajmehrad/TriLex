@@ -8,16 +8,17 @@
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root{
-    --paper:#EEEBE3;
-    --paper-2:#E4E0D5;
-    --ink:#1F2A3C;
-    --ink-soft:#4B5768;
-    --brass:#B4802E;
-    --brass-deep:#8C6220;
-    --burgundy:#7A3030;
-    --line:#CFC9B8;
-    --card:#F8F6F0;
-    --green-tag:#3F6B4F;
+    --paper:#121012;
+    --paper-2:#1D1815;
+    --ink:#F4EBDD;
+    --ink-soft:#BBB0A0;
+    --brass:#D9AE47;
+    --brass-deep:#B8860B;
+    --burgundy:#C62828;
+    --line:#3C332A;
+    --card:#1C1713;
+    --green-tag:#D4574A;
+    --flag-black:#2A2420;
   }
   *{box-sizing:border-box;}
   body{
@@ -60,7 +61,12 @@
     color:var(--ink-soft);
   }
   header.top .rule{
-    width:64px; height:3px; background:var(--brass); margin:14px auto 0; border-radius:2px;
+    width:84px; height:4px; margin:16px auto 0; border-radius:2px;
+    background:linear-gradient(90deg,
+      var(--flag-black) 0%, var(--flag-black) 33%,
+      var(--burgundy) 33%, var(--burgundy) 66%,
+      var(--brass) 66%, var(--brass) 100%);
+    box-shadow:0 1px 6px rgba(217,174,71,.35);
   }
 
   .search-box{
@@ -90,7 +96,7 @@
   }
   .search-box input:focus{
     border-color:var(--brass);
-    box-shadow:0 0 0 3px rgba(180,128,46,.15);
+    box-shadow:0 0 0 3px rgba(217,174,71,.25);
   }
   .search-box .icon{
     position:absolute; top:50%; right:16px; transform:translateY(-50%);
@@ -113,7 +119,7 @@
   }
   .pos-filter:focus{
     border-color:var(--brass);
-    box-shadow:0 0 0 3px rgba(180,128,46,.15);
+    box-shadow:0 0 0 3px rgba(217,174,71,.25);
   }
   .pos-filter.active{
     border-color:var(--brass-deep);
@@ -143,7 +149,7 @@
     transition:all .18s;
     position:relative;
     direction:ltr;
-    box-shadow:0 1px 2px rgba(31,42,60,.04);
+    box-shadow:0 1px 2px rgba(0,0,0,.35);
   }
   .tab-btn .badge{
     flex:0 0 auto;
@@ -175,7 +181,7 @@
   .tab-btn:hover{
     border-color:var(--brass);
     transform:translateY(-1px);
-    box-shadow:0 3px 8px rgba(31,42,60,.08);
+    box-shadow:0 3px 8px rgba(0,0,0,.45);
   }
   .tab-btn:hover .badge{ border-color:var(--brass); }
   .tab-btn.active{
@@ -186,7 +192,7 @@
   .tab-btn.active .badge{
     background:var(--brass);
     border-color:var(--brass);
-    color:var(--ink);
+    color:#17130F;
   }
   .tab-btn.active .cnt{ opacity:.55; color:var(--paper); }
   .tab-btn .dot{
@@ -194,7 +200,7 @@
     width:6px; height:6px; border-radius:50%;
     background:var(--green-tag);
   }
-  .tab-btn.active .dot{ background:#8FD9A8; }
+  .tab-btn.active .dot{ background:#F0D272; }
 
   .lektion-title{
     display:flex; align-items:baseline; justify-content:space-between;
@@ -216,9 +222,9 @@
     font-family:'Inter',sans-serif;
   }
   .progress-note{
-    background:#EFE4C8;
-    border:1px solid #D8C48C;
-    color:#6B4E14;
+    background:rgba(217,174,71,.12);
+    border:1px solid rgba(217,174,71,.35);
+    color:#E9C878;
     font-size:12.5px;
     padding:9px 12px;
     border-radius:8px;
@@ -241,12 +247,43 @@
     transition:box-shadow .15s, transform .15s;
   }
   .card:hover{
-    box-shadow:0 4px 14px rgba(31,42,60,.08);
+    box-shadow:0 4px 14px rgba(0,0,0,.45);
     transform:translateY(-1px);
   }
   .card .de-row{
     display:flex; align-items:baseline; gap:7px; direction:ltr; unicode-bidi:isolate;
     flex-wrap:wrap;
+  }
+  .speak-btn{
+    flex:0 0 auto;
+    width:26px; height:26px;
+    border-radius:50%;
+    border:1.5px solid var(--line);
+    background:var(--paper-2);
+    color:var(--brass);
+    display:inline-flex; align-items:center; justify-content:center;
+    font-size:12px;
+    cursor:pointer;
+    transition:all .15s;
+    align-self:center;
+  }
+  .speak-btn:hover{
+    border-color:var(--brass);
+    background:rgba(217,174,71,.15);
+    transform:scale(1.08);
+  }
+  .speak-btn:active{ transform:scale(.94); }
+  .speak-btn.speaking{
+    color:var(--paper);
+    background:var(--brass);
+    border-color:var(--brass);
+  }
+  .modal-header .speak-btn{
+    width:34px; height:34px; font-size:15px;
+  }
+  .example-box .speak-btn, .conj-example .speak-btn{
+    width:24px; height:24px; font-size:11px;
+    margin-inline-start:8px;
   }
   .card .artikel{
     font-family:'Fraunces',serif; font-style:italic;
@@ -268,7 +305,7 @@
     margin-top:6px;
     font-size:10.5px;
     font-family:'Vazirmatn',sans-serif;
-    background:rgba(63,107,79,.12);
+    background:rgba(212,87,74,.16);
     color:var(--green-tag);
     padding:2px 8px;
     border-radius:999px;
@@ -302,7 +339,7 @@
   .card .pending{
     margin-top:8px;
     font-size:11.5px;
-    color:#9C7A2E;
+    color:#D2A94E;
   }
 
   .empty{
@@ -349,6 +386,16 @@
     padding:0; margin-top:10px; text-decoration:underline;
   }
 
+  .tts-toast{
+    position:fixed; left:50%; bottom:22px; transform:translateX(-50%) translateY(20px);
+    background:var(--card); border:1.5px solid var(--burgundy); color:var(--ink);
+    padding:12px 18px; border-radius:12px; font-size:13px; max-width:88vw;
+    box-shadow:0 8px 24px rgba(0,0,0,.5);
+    z-index:2000; opacity:0; pointer-events:none; transition:all .25s;
+    text-align:center; line-height:1.8;
+  }
+  .tts-toast.show{ opacity:1; transform:translateX(-50%) translateY(0); }
+
   footer.note{
     text-align:center; margin-top:32px; font-size:11.5px; color:var(--ink-soft);
     line-height:1.9;
@@ -358,7 +405,7 @@
   .card:active{ transform:scale(0.98); }
 
   .modal-overlay{
-    position:fixed; inset:0; background:rgba(20,22,18,.55);
+    position:fixed; inset:0; background:rgba(0,0,0,.7);
     display:none; align-items:flex-end; justify-content:center;
     z-index:1000; padding:0;
     backdrop-filter:blur(2px);
@@ -378,7 +425,7 @@
     max-height:88vh;
     overflow-y:auto;
     border-radius:20px 20px 0 0;
-    box-shadow:0 -8px 32px rgba(0,0,0,.25);
+    box-shadow:0 -8px 40px rgba(0,0,0,.6), 0 0 0 1px rgba(217,174,71,.08);
     animation:slideUp .25s ease-out;
   }
   @media (min-width:640px){
@@ -413,7 +460,7 @@
   }
   .modal-header .pos-tag{
     display:inline-block; margin-top:8px; font-size:11px;
-    background:rgba(63,107,79,.12); color:var(--green-tag);
+    background:rgba(212,87,74,.16); color:var(--green-tag);
     padding:3px 10px; border-radius:999px; font-weight:600;
     direction:ltr; unicode-bidi:isolate;
   }
@@ -467,14 +514,14 @@
   }
   .conj-pron{
     font-family:'Inter',sans-serif; font-weight:700; font-size:11px;
-    color:var(--green-tag); background:rgba(63,107,79,.12);
+    color:var(--green-tag); background:rgba(212,87,74,.16);
     padding:2px 8px; border-radius:999px;
   }
   .conj-form{
     font-family:'Fraunces',serif; font-weight:700; font-size:15.5px; color:var(--ink);
   }
   .perfekt-box{
-    background:rgba(122,48,48,.06); border:1px solid rgba(122,48,48,.18);
+    background:rgba(198,40,40,.14); border:1px solid rgba(198,40,40,.4);
     border-radius:8px; padding:10px 14px; font-size:14px;
     direction:ltr; unicode-bidi:isolate; text-align:left;
   }
@@ -557,6 +604,8 @@
 
   <div class="grid" id="grid"></div>
   <div class="empty" id="emptyMsg" style="display:none;">کلمه‌ای پیدا نشد.</div>
+
+  <div id="ttsToast" class="tts-toast"></div>
 
   <div class="history-toggle" id="historyToggle">
     <span>&#128337; تاریخچهٔ جست‌وجوی من</span>
@@ -665,10 +714,12 @@ function renderCard(item){
   const hasTranslation = !!(item.en || item.fa || item.def);
   const div = document.createElement('div');
   div.className = 'card';
+  const speakText = (item.artikel ? item.artikel + ' ' : '') + item.de;
   let html = `<div class="de-row">`;
   if(item.artikel) html += `<span class="artikel">${item.artikel}</span>`;
   html += `<span class="de">${item.de}</span>`;
   if(item.plural) html += `<span class="plural">, ${item.plural}</span>`;
+  html += `<button type="button" class="speak-btn" data-speak="${speakText.replace(/"/g,'&quot;')}" title="تلفظ آلمانی" aria-label="تلفظ">🔊</button>`;
   html += `</div>`;
   if(item.pos) html += `<span class="pos-tag">${item.pos}</span>`;
   if(item.def) html += `<div class="def">${item.def}</div>`;
@@ -682,7 +733,10 @@ function renderCard(item){
     html += `<div class="pending">ترجمه به‌زودی اضافه می‌شود</div>`;
   }
   div.innerHTML = html;
-  div.addEventListener('click', () => openModal(item));
+  div.addEventListener('click', (e) => {
+    if(e.target.closest('.speak-btn')) return;
+    openModal(item);
+  });
   return div;
 }
 
@@ -693,10 +747,12 @@ function openModal(item){
   const posEl = document.getElementById('modalPos');
   const body = document.getElementById('modalBody');
 
+  const modalSpeakText = (item.artikel ? item.artikel + ' ' : '') + item.de;
   let deHtml = '';
   if(item.artikel) deHtml += `<span class="artikel">${item.artikel}</span>`;
   deHtml += `<span class="de">${item.de}</span>`;
   if(item.plural) deHtml += `<span class="plural">, ${item.plural}</span>`;
+  deHtml += `<button type="button" class="speak-btn" data-speak="${modalSpeakText.replace(/"/g,'&quot;')}" title="تلفظ آلمانی" aria-label="تلفظ">🔊</button>`;
   deRow.innerHTML = deHtml;
 
   if(item.pos){ posEl.textContent = item.pos; posEl.style.display = 'inline-block'; }
@@ -710,7 +766,7 @@ function openModal(item){
   if(item.example && item.example.de){
     bodyHtml += `<div class="modal-section-label">مثال</div>`;
     bodyHtml += `<div class="example-box">`;
-    bodyHtml += `<div class="ex-de">${item.example.de}</div>`;
+    bodyHtml += `<div class="ex-de">${item.example.de}<button type="button" class="speak-btn" data-speak="${item.example.de.replace(/"/g,'&quot;')}" title="تلفظ جمله" aria-label="تلفظ">🔊</button></div>`;
     if(item.example.en) bodyHtml += `<div class="ex-line ex-line-ltr"><span class="ex-tag">EN</span><span class="ex-en">${item.example.en}</span></div>`;
     if(item.example.fa) bodyHtml += `<div class="ex-line"><span class="ex-tag">FA</span><span class="ex-fa">${item.example.fa}</span></div>`;
     bodyHtml += `</div>`;
@@ -723,7 +779,7 @@ function openModal(item){
     rows.forEach(([pron,data])=>{
       if(!data) return;
       bodyHtml += `<div class="conj-example">`;
-      bodyHtml += `<div class="conj-head"><span class="conj-pron">${pron}</span><span class="conj-form">${data.form}</span></div>`;
+      bodyHtml += `<div class="conj-head"><span class="conj-pron">${pron}</span><span class="conj-form">${data.form}</span><button type="button" class="speak-btn" data-speak="${(pron.split('/')[0]+' '+data.form).replace(/"/g,'&quot;')}" title="تلفظ" aria-label="تلفظ">🔊</button></div>`;
       if(data.de) bodyHtml += `<div class="ex-de" style="margin-bottom:8px;">${data.de}</div>`;
       if(data.en) bodyHtml += `<div class="ex-line ex-line-ltr"><span class="ex-tag">EN</span><span class="ex-en">${data.en}</span></div>`;
       if(data.fa) bodyHtml += `<div class="ex-line"><span class="ex-tag">FA</span><span class="ex-fa">${data.fa}</span></div>`;
@@ -765,7 +821,7 @@ function render(){
     const card = renderCard(it);
     if(isFiltering){
       const badge = document.createElement('div');
-      badge.style.cssText = 'font-size:10px;color:#9C7A2E;margin-bottom:4px;font-family:Vazirmatn;';
+      badge.style.cssText = 'font-size:10px;color:#D2A94E;margin-bottom:4px;font-family:Vazirmatn;';
       badge.textContent = `درس ${FA_NUMS[it._lekt]}`;
       card.prepend(badge);
     }
@@ -859,6 +915,112 @@ document.getElementById('posFilter').addEventListener('change', (e)=>{
   e.target.classList.toggle('active', !!posFilter);
   render();
 });
+
+// ---- German pronunciation (Web Speech API — free, on-device, no API key) ----
+let deVoice = null;
+function pickGermanVoice(){
+  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
+  if(!voices.length) return null;
+  // Prefer a native/local de-DE voice for the most natural sound; fall back to any de-* voice.
+  return voices.find(v => v.lang === 'de-DE' && v.localService)
+      || voices.find(v => v.lang === 'de-DE')
+      || voices.find(v => v.lang && v.lang.startsWith('de'))
+      || null;
+}
+if('speechSynthesis' in window){
+  deVoice = pickGermanVoice();
+  window.speechSynthesis.onvoiceschanged = () => { deVoice = pickGermanVoice(); };
+}
+
+let ttsToastTimer;
+function showTtsToast(msg){
+  const toast = document.getElementById('ttsToast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  clearTimeout(ttsToastTimer);
+  ttsToastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+}
+
+// Proactively warn on load if this device/browser can't do TTS at all —
+// most common cause of "I tap and nothing happens".
+window.addEventListener('load', () => {
+  setTimeout(() => {
+    if(!('speechSynthesis' in window)){
+      showTtsToast('این مرورگر از تلفظ صوتی پشتیبانی نمی‌کند. لطفاً صفحه را در Chrome یا Safari (نه داخل پیش‌نمایش اپلیکیشن) باز کنید.');
+    } else {
+      const voices = window.speechSynthesis.getVoices();
+      if(!voices.length){
+        showTtsToast('روی این دستگاه هیچ صدای تبدیل‌متن‌به‌گفتار نصب نیست، برای همین صدا پخش نمی‌شود. در اندروید: تنظیمات ← دسترسی‌پذیری ← تبدیل متن به گفتار ← نصب/فعال‌سازی «Google TTS»، سپس صفحه را رفرش کنید.');
+      }
+    }
+  }, 1200);
+});
+
+function speakGerman(text, btnEl){
+  if(!text) return;
+  if(!('speechSynthesis' in window)){
+    showTtsToast('این مرورگر از تلفظ صوتی پشتیبانی نمی‌کند. لطفاً از Chrome یا Safari استفاده کنید.');
+    return;
+  }
+  const synth = window.speechSynthesis;
+  document.querySelectorAll('.speak-btn.speaking').forEach(b => b.classList.remove('speaking'));
+
+  const doSpeak = () => {
+    const utter = new SpeechSynthesisUtterance(text);
+    utter.lang = 'de-DE';
+    const voice = deVoice || pickGermanVoice();
+    if(voice) utter.voice = voice;
+    utter.rate = 0.92;
+    utter.pitch = 1;
+    utter.volume = 1;
+    if(btnEl) btnEl.classList.add('speaking');
+
+    let started = false;
+    utter.onstart = () => { started = true; };
+    utter.onend = () => { if(btnEl) btnEl.classList.remove('speaking'); };
+    utter.onerror = (ev) => {
+      if(btnEl) btnEl.classList.remove('speaking');
+      console.error('speechSynthesis error:', ev.error);
+      if(ev.error === 'synthesis-failed' || ev.error === 'synthesis-unavailable' || ev.error === 'language-unavailable' || ev.error === 'voice-unavailable'){
+        showTtsToast('صدای آلمانی روی این دستگاه در دسترس نیست. در اندروید «Google Text-to-Speech» را از فروشگاه اپ نصب/به‌روزرسانی کنید و بستهٔ زبان آلمانی را در تنظیمات آن دانلود کنید.');
+      } else if(ev.error !== 'canceled' && ev.error !== 'interrupted'){
+        showTtsToast('پخش صدا با خطا مواجه شد: ' + ev.error);
+      }
+    };
+    synth.speak(utter);
+    // Chrome sometimes silently swallows speak() right after cancel(),
+    // and some webviews never fire onstart/onerror at all — detect that
+    // "nothing happened" case and tell the user explicitly.
+    setTimeout(() => {
+      if(!started && !synth.speaking && !synth.pending){
+        if(btnEl) btnEl.classList.remove('speaking');
+        showTtsToast('صدا پخش نشد. اگر داخل پیش‌نمایش اپلیکیشن هستید، لطفاً فایل را در مرورگر اصلی گوشی (Chrome/Safari) باز کنید و دوباره امتحان کنید.');
+      }
+    }, 900);
+  };
+
+  // Calling speak() immediately after cancel() can be silently dropped in
+  // some Chrome versions — a tiny delay avoids that known bug.
+  if(synth.speaking || synth.pending){
+    synth.cancel();
+    setTimeout(doSpeak, 70);
+  } else {
+    doSpeak();
+  }
+}
+
+// Single delegated listener handles speak buttons everywhere: cards, modal
+// header, example sentences and conjugation rows — all built dynamically.
+// Registered on the CAPTURE phase (the `true` flag) so it fires before the
+// modal-card's own onclick="event.stopPropagation()" can block it during
+// the bubble phase — otherwise every speak button inside the modal would
+// be unreachable.
+document.addEventListener('click', (e) => {
+  const btn = e.target.closest('.speak-btn');
+  if(!btn) return;
+  e.stopPropagation();
+  speakGerman(btn.dataset.speak, btn);
+}, true);
 
 buildPosFilterOptions();
 loadHistory();
