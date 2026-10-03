@@ -3,6 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
+<meta name="referrer" content="no-referrer">
 <title>واژه‌نامهٔ Starten wir A1</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@400;500;600;700;800&family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;1,9..144,500&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
@@ -780,7 +781,7 @@ function openModal(item){
       if(!data) return;
       bodyHtml += `<div class="conj-example">`;
       bodyHtml += `<div class="conj-head"><span class="conj-pron">${pron}</span><span class="conj-form">${data.form}</span><button type="button" class="speak-btn" data-speak="${(pron.split('/')[0]+' '+data.form).replace(/"/g,'&quot;')}" title="تلفظ" aria-label="تلفظ">🔊</button></div>`;
-      if(data.de) bodyHtml += `<div class="ex-de" style="margin-bottom:8px;">${data.de}</div>`;
+      if(data.de) bodyHtml += `<div class="ex-de" style="margin-bottom:8px;">${data.de}<button type="button" class="speak-btn" data-speak="${data.de.replace(/"/g,'&quot;')}" title="تلفظ جمله" aria-label="تلفظ">🔊</button></div>`;
       if(data.en) bodyHtml += `<div class="ex-line ex-line-ltr"><span class="ex-tag">EN</span><span class="ex-en">${data.en}</span></div>`;
       if(data.fa) bodyHtml += `<div class="ex-line"><span class="ex-tag">FA</span><span class="ex-fa">${data.fa}</span></div>`;
       bodyHtml += `</div>`;
@@ -916,149 +917,207 @@ document.getElementById('posFilter').addEventListener('change', (e)=>{
   render();
 });
 
-// ---- German pronunciation (Web Speech API — free, on-device, no API key) ----
-let deVoice = null;
-function pickGermanVoice(){
-  const voices = window.speechSynthesis ? window.speechSynthesis.getVoices() : [];
-  if(!voices.length) return null;
-  // Prefer a native/local de-DE voice for the most natural sound; fall back to any de-* voice.
-  return voices.find(v => v.lang === 'de-DE' && v.localService)
-      || voices.find(v => v.lang === 'de-DE')
-      || voices.find(v => v.lang && v.lang.startsWith('de'))
-      || null;
+// ---- German pronunciation: robust multi-source player ----
+// Order of attempts (first one that works wins):
+//   1) online TTS mp3 sources (Google x3, StreamElements), last-working one first
+//   2) the device's own German voice (speechSynthesis) if one exists
+//   3) speechSynthesis "blind" (lang only) as a last resort
+const hasSynth = ('speechSynthesis' in window) && ('SpeechSynthesisUtterance' in window);
+
+// Same cleanup is used by make_audio.py so file names match.
+function cleanSpeakText(t){
+  return String(t || '')
+    .replace(/\([^)]*\)/g, ' ')     // "(Uhrzeit)", "(Sg.)"
+    .replace(/\/e\b/g, '')          // "mein/e" -> "mein"
+    .replace(/-?\//g, ' ')          // "ja-/Nein-Frage" -> "ja Nein-Frage"
+    .replace(/\s+/g, ' ')
+    .trim();
 }
-if('speechSynthesis' in window){
-  deVoice = pickGermanVoice();
-  window.speechSynthesis.onvoiceschanged = () => { deVoice = pickGermanVoice(); };
+function cyrb53(str, seed){
+  seed = seed || 0;
+  let h1 = 0xdeadbeef ^ seed, h2 = 0x41c6ce57 ^ seed;
+  for(let i = 0, ch; i < str.length; i++){
+    ch = str.charCodeAt(i);
+    h1 = Math.imul(h1 ^ ch, 2654435761);
+    h2 = Math.imul(h2 ^ ch, 1597334677);
+  }
+  h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909);
+  h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909);
+  return 4294967296 * (2097151 & h2) + (h1 >>> 0);
 }
 
+// ---- toast ----
 let ttsToastTimer;
 function showTtsToast(msg){
   const toast = document.getElementById('ttsToast');
   toast.textContent = msg;
   toast.classList.add('show');
   clearTimeout(ttsToastTimer);
-  ttsToastTimer = setTimeout(() => toast.classList.remove('show'), 5000);
+  ttsToastTimer = setTimeout(() => toast.classList.remove('show'), 6000);
 }
 
-// No startup warning needed anymore: playback now primarily uses an online
-// audio file (works the same everywhere with an internet connection), and
-// only falls back to the device's local speechSynthesis if that fails.
-
-// ---- Primary playback: online TTS audio file (works the same in every
-// browser/webview, since it's a real MP3 — no dependency on the device
-// having a German voice pack installed). Falls back to the device's own
-// speechSynthesis only if the network request fails. ----
-let currentTtsAudio = null;
-
-function ttsAudioUrl(text){
-  // StreamElements' free speech endpoint (Amazon Polly voices under the
-  // hood): permissive CORS, no API key, returns a playable MP3 directly.
-  return 'https://api.streamelements.com/kappa/v2/speech?voice=Marlene&text=' + encodeURIComponent(text);
+// ---- device voice ----
+function langOf(v){ return (v.lang || '').replace('_', '-').toLowerCase(); }
+function getGermanVoice(){
+  if(!hasSynth) return null;
+  let voices = [];
+  try{ voices = window.speechSynthesis.getVoices() || []; }catch(e){}
+  const de = voices.filter(v => langOf(v).startsWith('de') || /german|deutsch/i.test(v.name || ''));
+  if(!de.length) return null;
+  return de.find(v => langOf(v) === 'de-de' && v.localService)
+      || de.find(v => langOf(v) === 'de-de')
+      || de[0];
+}
+if(hasSynth){
+  try{
+    window.speechSynthesis.getVoices();                       // primes the list (Chrome/Safari)
+    window.speechSynthesis.onvoiceschanged = () => { window.speechSynthesis.getVoices(); };
+  }catch(e){}
 }
 
-function speakGermanOnline(text, btnEl, onFail){
-  if(currentTtsAudio){
-    try{ currentTtsAudio.pause(); }catch(e){}
-    currentTtsAudio = null;
-  }
-  const audio = new Audio();
-  currentTtsAudio = audio;
-  audio.src = ttsAudioUrl(text);
-  audio.preload = 'auto';
+// ---- one shared <audio> element, unlocked on the first touch/click ----
+// (iOS/Safari only allow audio that was started by a user gesture; reusing
+//  one unlocked element lets us switch between fallback sources freely.)
+const ttsAudio = new Audio();
+ttsAudio.preload = 'auto';
+let audioUnlocked = false;
+const SILENT_WAV = 'data:audio/wav;base64,UklGRiUAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQEAAACA';
+function unlockAudio(){
+  if(audioUnlocked) return;
+  audioUnlocked = true;
+  try{
+    ttsAudio.src = SILENT_WAV;
+    const p = ttsAudio.play();
+    if(p && p.catch) p.catch(() => {});
+  }catch(e){}
+  if(hasSynth){ try{ window.speechSynthesis.getVoices(); }catch(e){} }
+}
+['pointerdown', 'touchstart', 'click', 'keydown'].forEach(ev =>
+  document.addEventListener(ev, unlockAudio, {capture:true, passive:true}));
 
-  let settled = false;
-  const cleanup = () => { if(btnEl) btnEl.classList.remove('speaking'); };
+// ---- state ----
+let speakToken = 0;
+let onlineOrder = ['g1', 'g2', 'g3', 'se'];     // best-working online source moves to the front
+const ONLINE_URL = {
+  g1: t => 'https://translate.google.com/translate_tts?ie=UTF-8&client=tw-ob&tl=de&q=' + encodeURIComponent(t),
+  g3: t => 'https://translate.google.com/translate_tts?ie=UTF-8&client=gtx&tl=de&q=' + encodeURIComponent(t),
+  g2: t => 'https://translate.googleapis.com/translate_tts?ie=UTF-8&client=gtx&tl=de&q=' + encodeURIComponent(t),
+  se: t => 'https://api.streamelements.com/kappa/v2/speech?voice=Marlene&text=' + encodeURIComponent(t)
+};
 
-  audio.onended = () => { settled = true; cleanup(); };
-  audio.onerror = () => {
-    if(settled) return;
-    settled = true;
-    cleanup();
-    onFail();
-  };
+function detachAudio(){
+  ttsAudio.onplaying = ttsAudio.onended = ttsAudio.onerror = null;
+}
+function stopAllSpeech(){
+  detachAudio();
+  try{ ttsAudio.pause(); }catch(e){}
+  if(hasSynth){ try{ window.speechSynthesis.cancel(); }catch(e){} }
+  document.querySelectorAll('.speak-btn.speaking').forEach(b => b.classList.remove('speaking'));
+}
+function finish(ctx){
+  if(ctx.token !== speakToken) return;
+  clearTimeout(ctx.maxTimer);
+  if(ctx.btn) ctx.btn.classList.remove('speaking');
+}
 
-  if(btnEl) btnEl.classList.add('speaking');
-  const playPromise = audio.play();
-  if(playPromise && playPromise.catch){
-    playPromise.catch(() => {
+// ---- steps ----
+function audioStep(urlFn, timeoutMs, onResult){
+  return (ctx, next) => {
+    if(ctx.token !== speakToken) return;
+    let settled = false, started = false, timer;
+    const fail = () => {
       if(settled) return;
-      settled = true;
-      cleanup();
-      onFail();
-    });
-  }
-
-  // Safety net: some webviews never fire error/ended at all if the
-  // request is silently blocked (e.g. no internet access to the API).
-  setTimeout(() => {
-    if(settled) return;
-    if(audio.readyState === 0){
-      settled = true;
-      cleanup();
-      onFail();
-    }
-  }, 3500);
+      settled = true; clearTimeout(timer); detachAudio();
+      if(ctx.token !== speakToken) return;
+      if(onResult) onResult(false);
+      next();
+    };
+    detachAudio();
+    ttsAudio.onplaying = () => { started = true; clearTimeout(timer); if(onResult) onResult(true); };
+    ttsAudio.onended   = () => { if(settled) return; settled = true; clearTimeout(timer); detachAudio(); finish(ctx); };
+    ttsAudio.onerror   = fail;
+    timer = setTimeout(() => { if(!started) fail(); }, timeoutMs);
+    try{
+      ttsAudio.src = urlFn(ctx.text);
+      const p = ttsAudio.play();
+      if(p && p.catch) p.catch(err => { if(err && err.name === 'AbortError') return; fail(); });
+    }catch(e){ fail(); }
+  };
 }
 
-function speakGermanDeviceFallback(text, btnEl){
-  if(!('speechSynthesis' in window)){
-    showTtsToast('پخش آنلاین صدا شکست خورد و این مرورگر از تلفظ محلی هم پشتیبانی نمی‌کند. اتصال اینترنت را بررسی کنید یا از Chrome/Safari استفاده کنید.');
+function deviceStep(){
+  return (ctx, next) => {
+    if(!hasSynth){ next(); return; }
+    const synth = window.speechSynthesis;
+    const go = () => {
+      if(ctx.token !== speakToken) return;
+      const u = new SpeechSynthesisUtterance(ctx.text);
+      const v = getGermanVoice();
+      u.lang = v ? (v.lang || 'de-DE').replace('_', '-') : 'de-DE';
+      if(v) u.voice = v;
+      u.rate = 0.9; u.pitch = 1; u.volume = 1;
+      let started = false, settled = false, timer;
+      const fail = () => {
+        if(settled) return;
+        settled = true; clearTimeout(timer);
+        try{ synth.cancel(); }catch(e){}
+        if(ctx.token !== speakToken) return;
+        next();
+      };
+      u.onstart = () => { started = true; };
+      u.onend = () => { if(settled) return; settled = true; clearTimeout(timer); finish(ctx); };
+      u.onerror = (ev) => {
+        if(ev && (ev.error === 'canceled' || ev.error === 'interrupted')){ settled = true; clearTimeout(timer); return; }
+        fail();
+      };
+      timer = setTimeout(() => { if(!started && !synth.speaking) fail(); }, 2200);
+      window.__ttsUtter = u;                 // keep a reference (Chrome/Android GC bug)
+      try{ synth.speak(u); }catch(e){ fail(); }
+    };
+    if(synth.speaking || synth.pending){ synth.cancel(); setTimeout(go, 80); } else { go(); }
+  };
+}
+
+function failMessage(){
+  const ua = navigator.userAgent || '';
+  if(/Instagram|FBAN|FBAV|Telegram|Line\/|; wv\)/i.test(ua)){
+    return 'پخش صدا در این مرورگرِ داخل برنامه ممکن نیست. لینک را در مرورگر اصلی گوشی (Chrome یا Safari) باز کنید.';
+  }
+  return 'پخش صدا ممکن نشد. اینترنت (یا فیلترشکن) را بررسی کنید؛ اگر باز هم نشد، یک بار صفحه را دوباره بارگذاری کنید.';
+}
+
+function runSteps(steps, i, ctx){
+  if(ctx.token !== speakToken) return;
+  if(i >= steps.length){
+    finish(ctx);
+    showTtsToast(failMessage());
     return;
   }
-  const synth = window.speechSynthesis;
-
-  const doSpeak = () => {
-    const utter = new SpeechSynthesisUtterance(text);
-    utter.lang = 'de-DE';
-    const voice = deVoice || pickGermanVoice();
-    if(voice) utter.voice = voice;
-    utter.rate = 0.92;
-    utter.pitch = 1;
-    utter.volume = 1;
-    if(btnEl) btnEl.classList.add('speaking');
-
-    let started = false;
-    utter.onstart = () => { started = true; };
-    utter.onend = () => { if(btnEl) btnEl.classList.remove('speaking'); };
-    utter.onerror = (ev) => {
-      if(btnEl) btnEl.classList.remove('speaking');
-      console.error('speechSynthesis error:', ev.error);
-      if(ev.error === 'synthesis-failed' || ev.error === 'synthesis-unavailable' || ev.error === 'language-unavailable' || ev.error === 'voice-unavailable'){
-        showTtsToast('پخش آنلاین صدا شکست خورد و صدای آلمانی محلی هم روی این دستگاه در دسترس نیست. اتصال اینترنت را بررسی کنید یا در اندروید «Google Text-to-Speech» را نصب/به‌روزرسانی کنید.');
-      } else if(ev.error !== 'canceled' && ev.error !== 'interrupted'){
-        showTtsToast('پخش صدا با خطا مواجه شد: ' + ev.error);
-      }
-    };
-    synth.speak(utter);
-    setTimeout(() => {
-      if(!started && !synth.speaking && !synth.pending){
-        if(btnEl) btnEl.classList.remove('speaking');
-        showTtsToast('صدا پخش نشد. اتصال اینترنت خود را بررسی کنید یا فایل را در مرورگر اصلی گوشی (Chrome/Safari) باز کنید.');
-      }
-    }, 900);
-  };
-
-  if(synth.speaking || synth.pending){
-    synth.cancel();
-    setTimeout(doSpeak, 70);
-  } else {
-    doSpeak();
-  }
+  steps[i](ctx, () => runSteps(steps, i + 1, ctx));
 }
 
-function speakGerman(text, btnEl){
+function speakGerman(rawText, btnEl){
+  const text = cleanSpeakText(rawText);
   if(!text) return;
-  document.querySelectorAll('.speak-btn.speaking').forEach(b => b.classList.remove('speaking'));
-  speakGermanOnline(text, btnEl, () => speakGermanDeviceFallback(text, btnEl));
+  stopAllSpeech();
+  const token = ++speakToken;
+  const ctx = {token, text, btn: btnEl, maxTimer: null};
+  if(btnEl) btnEl.classList.add('speaking');
+  ctx.maxTimer = setTimeout(() => finish(ctx), 20000);   // never leave the button stuck
+
+  const steps = [];
+  onlineOrder.slice().forEach(key => {
+    steps.push(audioStep(ONLINE_URL[key], 3500, ok => {
+      onlineOrder = ok ? [key].concat(onlineOrder.filter(k => k !== key))
+                       : onlineOrder.filter(k => k !== key).concat(key);
+    }));
+  });
+  if(hasSynth) steps.push(deviceStep());                 // fallback: device voice
+  runSteps(steps, 0, ctx);
 }
 
-// Single delegated listener handles speak buttons everywhere: cards, modal
-// header, example sentences and conjugation rows — all built dynamically.
-// Registered on the CAPTURE phase (the `true` flag) so it fires before the
-// modal-card's own onclick="event.stopPropagation()" can block it during
-// the bubble phase — otherwise every speak button inside the modal would
-// be unreachable.
+// One delegated listener for every speak button (cards, modal, examples, conjugations).
+// Capture phase so the modal's own stopPropagation can't block it.
 document.addEventListener('click', (e) => {
   const btn = e.target.closest('.speak-btn');
   if(!btn) return;
